@@ -23,16 +23,31 @@ class DataBase:
                            time TIMESTAMP)''')
         self.conn.commit()
 
-    def add(self, text: str, from_user: str,chat_id:str, to_bot: str):
+    def create_table_lang(self):
+        cursor = self.conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS lang
+                          (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                           user TEXT,
+                           language TEXT)''')
+        self.conn.commit()
+
+    def add(self, text: str, from_user: str, chat_id: str, to_bot: str):
         time = datetime.now()
         cursor = self.conn.cursor()
         cursor.execute("INSERT INTO messages (text, from_user, chat_id, to_bot, time) VALUES (?, ?, ?, ?, ?)",
                        (text, from_user, chat_id, to_bot, time))
         self.conn.commit()
 
+    def add_lang(self, user: str, lang: str):
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO lang (user, language) VALUES (?, ?)",
+                       (user, lang))
+        self.conn.commit()
+
     def clear_db(self):
         cursor = self.conn.cursor()
         cursor.execute("DELETE FROM messages;")
+        cursor.execute("DELETE FROM lang;")
         self.conn.commit()
 
     def get_users_count(self):

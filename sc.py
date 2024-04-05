@@ -1,4 +1,5 @@
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import os
 import yt_dlp as youtube_dl
 import DB
@@ -26,7 +27,8 @@ async def get(s: str):
         ydl.download(s)
     return filename
 
-API_TOKEN = "6129793474:AAEFl_nY33P9wj8jXZnniZxzqnomiwH6Ma4"
+
+API_TOKEN = ""
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -54,8 +56,26 @@ async def check(message):
 
 @dp.message_handler(commands=["start", "help"])
 async def start(message: types.Message):
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton("Русский", callback_data=f"lang {message.from_user.username} Русский"))
+    markup.add(InlineKeyboardButton("English", callback_data=f"lang {message.from_user.username} English"))
     await message.answer(
-        "Hey 👋🏻 I will help you here to download any types of media: music. videos or movies in the best quality. Just send me the link to SoundCloud,  YouTube etc. ")
+        "Выберите язык", reply_markup=markup)
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("lang"))
+async def process_callback(callback_query: types.CallbackQuery):
+    await bot.edit_message_reply_markup(
+        chat_id=callback_query.from_user.id,
+        message_id=callback_query.message.message_id,
+        reply_markup=None
+    )
+    _, user, lang = callback_query.data.split()
+    bd.add_lang(user, lang)
+    await bot.edit_message_text(chat_id=callback_query.from_user.id,
+                                message_id=callback_query.message.message_id,
+                                text=f"You choice English" if lang == "English" else "Вы выбрали Русский")
+    print(callback_query.data)
 
 
 @dp.message_handler()
@@ -65,11 +85,10 @@ async def text_handler(message: types.Message):
     if not await check(message):
         await unsub(message)
         return 1
-    if "soundcloud.com" in message.text:
-        audio = await get("".join(message.text.split("?")[0]))
-        with open(audio, mode="rb") as file:
-            await bot.send_audio(message.chat.id, file)
-        os.remove(audio)
+    audio = await get("".join(message.text.split("?")[0]))
+    with open(audio, mode="rb") as file:
+        await bot.send_audio(message.chat.id, file)
+    os.remove(audio)
 
 
 if __name__ == '__main__':
