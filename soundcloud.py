@@ -4,8 +4,8 @@ import argparse
 
 def get(s: str):
     options = {
-        'format': 'bestaudio/best',
-        "quiet": True,
+        'format': 'bestaudio',
+        # "quiet": True,
         'keepvideo': False,
         'prefer_ffmpeg': True,
     }
@@ -15,7 +15,7 @@ def get(s: str):
         filename = ".".join(filename.split(".")[:-1]) + ".mp3"
     options = {
         'format': 'bestaudio',
-        "quiet": True,
+        # "quiet": True,
         'keepvideo': False,
         'outtmpl': filename,
         'prefer_ffmpeg': True,
@@ -25,4 +25,4 @@ def get(s: str):
     return filename
 
 
-print(get("https://www.youtube.com/watch?v=vKikl4va5G0"))
+print(get("https://www.tiktok.com/t/ZTLSyRNT9/"))

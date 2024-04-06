@@ -27,7 +27,7 @@ class DataBase:
         cursor = self.conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS lang
                           (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                           user TEXT,
+                           username TEXT,
                            language TEXT)''')
         self.conn.commit()
 
@@ -38,10 +38,17 @@ class DataBase:
                        (text, from_user, chat_id, to_bot, time))
         self.conn.commit()
 
+    def get_lang(self, user: str):
+        cursor = self.conn.cursor()
+        return cursor.execute(f"SELECT language FROM lang WHERE username='{user}'").fetchall()[0][0]
+
     def add_lang(self, user: str, lang: str):
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO lang (user, language) VALUES (?, ?)",
-                       (user, lang))
+        if len(cursor.execute(f"SELECT language FROM lang WHERE username='{user}'").fetchall()) == 0:
+            cursor.execute("INSERT INTO lang (username, language) VALUES (?, ?)",
+                           (user, lang))
+        else:
+            cursor.execute(f"UPDATE lang set language = '{lang}' WHERE username = '{user}'")
         self.conn.commit()
 
     def clear_db(self):
@@ -56,4 +63,3 @@ class DataBase:
 
 if __name__ == '__main__':
     db = DataBase()
-    print(db.get_users_count())

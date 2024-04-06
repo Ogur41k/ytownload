@@ -28,7 +28,7 @@ async def get(s: str):
     return filename
 
 
-API_TOKEN = ""
+API_TOKEN = "6114010528:AAEJtANa1tH4Ts8_2u_j-5dwvwy1kiLaKNk"
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -74,8 +74,7 @@ async def process_callback(callback_query: types.CallbackQuery):
     bd.add_lang(user, lang)
     await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id,
-                                text=f"You choice English" if lang == "English" else "Вы выбрали Русский")
-    print(callback_query.data)
+                                text="Привет 👋🏻  Я помогу скачать тебе почти все что угодно: музыку, видео и фильмы в лучшем качестве! Вставь ссылку из Soundcloud, YouTube и тд" if lang == "English" else "Hey 👋🏻 I will help you here to download any types of media: music. videos or movies in the best quality. Just send me the link to SoundCloud,  YouTube etc")
 
 
 @dp.message_handler()
