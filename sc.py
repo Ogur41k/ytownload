@@ -4,12 +4,20 @@ import os
 import tl, dl
 import DB
 
-# def audio(s: str) -> str:
-#     return "1.mp3"
-#
-#
-# def video(s: str) -> str:
-#     return "1.mp4"
+vocab_s_i = {"Дом": 1}
+vocab_i_s = {1: "Дом"}
+
+
+def vocab(a):
+    if a.isnumeric():
+        return vocab_i_s[int(a)]
+    if a in vocab_s_i:
+        return vocab_s_i[a]
+    else:
+        t = max(vocab_s_i.values()) + 1
+        vocab_s_i[a] = t
+        vocab_i_s[t] = a
+        return t
 
 
 API_TOKEN = "6129793474:AAEnQD7jNt5O2okuRRwz2yyjHO1-Km_eDOQ"
@@ -60,40 +68,45 @@ async def process_callback2(callback_query: types.CallbackQuery):
         message_id=callback_query.message.message_id,
         reply_markup=None
     )
-    _, user, lang = callback_query.data.split()
+    _, user, lang = vocab(callback_query.data).split()
     bd.add_lang(user, lang)
     await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id,
                                 text="Привет 👋🏻  Я помогу скачать тебе почти все что угодно: музыку, видео и фильмы в лучшем качестве! Вставь ссылку из Soundcloud, YouTube и тд" if lang == "Русский" else "Hey 👋🏻 I will help you here to download any types of media: music. videos or movies in the best quality. Just send me the link to SoundCloud,  YouTube etc")
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("a"))
+@dp.callback_query_handler(lambda c: vocab(c.data).startswith("a"))
 async def process_callback(callback_query: types.CallbackQuery):
     await bot.edit_message_reply_markup(
         chat_id=callback_query.from_user.id,
         message_id=callback_query.message.message_id,
         reply_markup=None
     )
-    print(callback_query.data)
-    audio = dl.audio(callback_query.data.replace("a ", ""))
+    print(vocab(callback_query.data))
+    await bot.edit_message_text(text="Подождите пожалуйста", chat_id=callback_query.from_user.id,
+                                message_id=callback_query.message.message_id)
+    audio = dl.audio(vocab(callback_query.data).replace("a ", ""))
     print(audio)
     with open(audio, mode="rb") as file:
         await bot.send_audio(chat_id=callback_query.message.chat.id, audio=file)
     os.remove(audio)
+    await bot.edit_message_text(text="Спасибо за использование бота", chat_id=callback_query.from_user.id,
+                                message_id=callback_query.message.message_id)
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("v"))
+@dp.callback_query_handler(lambda c: vocab(c.data).startswith("v"))
 async def process_callback1(callback_query: types.CallbackQuery):
     await bot.edit_message_reply_markup(
         chat_id=callback_query.from_user.id,
         message_id=callback_query.message.message_id,
         reply_markup=None
     )
-    print(callback_query.data)
+    print(vocab(callback_query.data))
     await bot.edit_message_text(text="Подождите пожалуйста", chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id)
 
-    video = dl.video(callback_query.data.replace("v ", ""))
+    video = dl.video(vocab(callback_query.data).replace("v ", ""))
+    print(video)
     await tl.send(video, str(callback_query.from_user.id))
     os.remove(video)
     await bot.edit_message_text(text="Спасибо за использование бота", chat_id=callback_query.from_user.id,
@@ -108,8 +121,8 @@ async def text_handler(message: types.Message):
         await unsub(message)
         return 1
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton("audio", callback_data=f"a {message.text}"))
-    markup.add(InlineKeyboardButton("video", callback_data=f"v {message.text}"))
+    markup.add(InlineKeyboardButton("audio", callback_data=vocab(f"a {message.text}")))
+    markup.add(InlineKeyboardButton("video", callback_data=vocab(f"v {message.text}")))
     await message.answer(
         "Выберите формат файла", reply_markup=markup)
 
