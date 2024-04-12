@@ -1,34 +1,18 @@
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import os
-import yt_dlp as youtube_dl
+import tl, dl
 import DB
 
-
-async def get(s: str):
-    options = {
-        'format': 'bestaudio/best',
-        "quiet": True,
-        'keepvideo': False,
-        'prefer_ffmpeg': True,
-    }
-
-    with youtube_dl.YoutubeDL(options) as ydl:
-        filename = ydl.extract_info(s)["requested_downloads"][0]["_filename"]
-        filename = ".".join(filename.split(".")[:-1]) + ".mp3"
-    options = {
-        'format': 'bestaudio',
-        "quiet": True,
-        'keepvideo': False,
-        'outtmpl': filename,
-        'prefer_ffmpeg': True,
-    }
-    with youtube_dl.YoutubeDL(options) as ydl:
-        ydl.download(s)
-    return filename
+# def audio(s: str) -> str:
+#     return "1.mp3"
+#
+#
+# def video(s: str) -> str:
+#     return "1.mp4"
 
 
-API_TOKEN = "6114010528:AAEJtANa1tH4Ts8_2u_j-5dwvwy1kiLaKNk"
+API_TOKEN = "6129793474:AAEnQD7jNt5O2okuRRwz2yyjHO1-Km_eDOQ"
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -54,6 +38,12 @@ async def check(message):
     return all(sub)
 
 
+@dp.message_handler(content_types=['document', "audio", "video"])
+async def text_handler1(message: types.Message):
+    if message.from_user.username in ["Ogur41kkk"]:
+        await bot.copy_message(int(message.caption), message.chat.id, message.message_id, caption="")
+
+
 @dp.message_handler(commands=["start", "help"])
 async def start(message: types.Message):
     markup = InlineKeyboardMarkup(row_width=1)
@@ -64,7 +54,7 @@ async def start(message: types.Message):
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("lang"))
-async def process_callback(callback_query: types.CallbackQuery):
+async def process_callback2(callback_query: types.CallbackQuery):
     await bot.edit_message_reply_markup(
         chat_id=callback_query.from_user.id,
         message_id=callback_query.message.message_id,
@@ -74,7 +64,40 @@ async def process_callback(callback_query: types.CallbackQuery):
     bd.add_lang(user, lang)
     await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id,
-                                text="Привет 👋🏻  Я помогу скачать тебе почти все что угодно: музыку, видео и фильмы в лучшем качестве! Вставь ссылку из Soundcloud, YouTube и тд" if lang == "English" else "Hey 👋🏻 I will help you here to download any types of media: music. videos or movies in the best quality. Just send me the link to SoundCloud,  YouTube etc")
+                                text="Привет 👋🏻  Я помогу скачать тебе почти все что угодно: музыку, видео и фильмы в лучшем качестве! Вставь ссылку из Soundcloud, YouTube и тд" if lang == "Русский" else "Hey 👋🏻 I will help you here to download any types of media: music. videos or movies in the best quality. Just send me the link to SoundCloud,  YouTube etc")
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("a"))
+async def process_callback(callback_query: types.CallbackQuery):
+    await bot.edit_message_reply_markup(
+        chat_id=callback_query.from_user.id,
+        message_id=callback_query.message.message_id,
+        reply_markup=None
+    )
+    print(callback_query.data)
+    audio = dl.audio(callback_query.data.replace("a ", ""))
+    print(audio)
+    with open(audio, mode="rb") as file:
+        await bot.send_audio(chat_id=callback_query.message.chat.id, audio=file)
+    os.remove(audio)
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("v"))
+async def process_callback1(callback_query: types.CallbackQuery):
+    await bot.edit_message_reply_markup(
+        chat_id=callback_query.from_user.id,
+        message_id=callback_query.message.message_id,
+        reply_markup=None
+    )
+    print(callback_query.data)
+    await bot.edit_message_text(text="Подождите пожалуйста", chat_id=callback_query.from_user.id,
+                                message_id=callback_query.message.message_id)
+
+    video = dl.video(callback_query.data.replace("v ", ""))
+    await tl.send(video, str(callback_query.from_user.id))
+    os.remove(video)
+    await bot.edit_message_text(text="Спасибо за использование бота", chat_id=callback_query.from_user.id,
+                                message_id=callback_query.message.message_id)
 
 
 @dp.message_handler()
@@ -84,10 +107,11 @@ async def text_handler(message: types.Message):
     if not await check(message):
         await unsub(message)
         return 1
-    audio = await get("".join(message.text.split("?")[0]))
-    with open(audio, mode="rb") as file:
-        await bot.send_audio(message.chat.id, file)
-    os.remove(audio)
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton("audio", callback_data=f"a {message.text}"))
+    markup.add(InlineKeyboardButton("video", callback_data=f"v {message.text}"))
+    await message.answer(
+        "Выберите формат файла", reply_markup=markup)
 
 
 if __name__ == '__main__':

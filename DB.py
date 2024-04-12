@@ -31,6 +31,14 @@ class DataBase:
                            language TEXT)''')
         self.conn.commit()
 
+    def create_table_urls(self):
+        cursor = self.conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS channels
+                          (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                           url TEXT,
+                           channel_id TEXT)''')
+        self.conn.commit()
+
     def add(self, text: str, from_user: str, chat_id: str, to_bot: str):
         time = datetime.now()
         cursor = self.conn.cursor()
@@ -51,6 +59,10 @@ class DataBase:
             cursor.execute(f"UPDATE lang set language = '{lang}' WHERE username = '{user}'")
         self.conn.commit()
 
+    def get_urls(self):
+        cursor = self.conn.cursor()
+        return cursor.execute("SELECT url,channel_id FROM channels").fetchall()
+
     def clear_db(self):
         cursor = self.conn.cursor()
         cursor.execute("DELETE FROM messages;")
@@ -63,3 +75,4 @@ class DataBase:
 
 if __name__ == '__main__':
     db = DataBase()
+    print(db.get_urls())
