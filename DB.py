@@ -27,7 +27,7 @@ class DataBase:
         cursor = self.conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS lang
                           (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                           username TEXT,
+                           user_id TEXT,
                            language TEXT)''')
         self.conn.commit()
 
@@ -48,15 +48,18 @@ class DataBase:
 
     def get_lang(self, user: str):
         cursor = self.conn.cursor()
-        return cursor.execute(f"SELECT language FROM lang WHERE username='{user}'").fetchall()[0][0]
+        t = cursor.execute(f"SELECT language FROM lang WHERE user_id='{user}'").fetchall()
+        if len(t) == 0:
+            return "English"
+        return t[0][0]
 
     def add_lang(self, user: str, lang: str):
         cursor = self.conn.cursor()
-        if len(cursor.execute(f"SELECT language FROM lang WHERE username='{user}'").fetchall()) == 0:
-            cursor.execute("INSERT INTO lang (username, language) VALUES (?, ?)",
+        if len(cursor.execute(f"SELECT language FROM lang WHERE user_id='{user}'").fetchall()) == 0:
+            cursor.execute("INSERT INTO lang (user_id, language) VALUES (?, ?)",
                            (user, lang))
         else:
-            cursor.execute(f"UPDATE lang set language = '{lang}' WHERE username = '{user}'")
+            cursor.execute(f"UPDATE lang set language = '{lang}' WHERE user_id = '{user}'")
         self.conn.commit()
 
     def get_urls(self):
@@ -75,4 +78,3 @@ class DataBase:
 
 if __name__ == '__main__':
     db = DataBase()
-    print(db.get_urls())

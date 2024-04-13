@@ -55,10 +55,10 @@ async def text_handler1(message: types.Message):
 @dp.message_handler(commands=["start", "help"])
 async def start(message: types.Message):
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton("Русский", callback_data=f"lang {message.from_user.username} Русский"))
-    markup.add(InlineKeyboardButton("English", callback_data=f"lang {message.from_user.username} English"))
+    markup.add(InlineKeyboardButton("Русский", callback_data=f"lang {message.from_user.id} Русский"))
+    markup.add(InlineKeyboardButton("English", callback_data=f"lang {message.from_user.id} English"))
     await message.answer(
-        "Выберите язык", reply_markup=markup)
+        "Choice language", reply_markup=markup)
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("lang"))
@@ -68,7 +68,7 @@ async def process_callback2(callback_query: types.CallbackQuery):
         message_id=callback_query.message.message_id,
         reply_markup=None
     )
-    _, user, lang = vocab(callback_query.data).split()
+    _, user, lang = callback_query.data.split()
     bd.add_lang(user, lang)
     await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id,
@@ -83,15 +83,23 @@ async def process_callback(callback_query: types.CallbackQuery):
         reply_markup=None
     )
     print(vocab(callback_query.data))
-    await bot.edit_message_text(text="Подождите пожалуйста", chat_id=callback_query.from_user.id,
+    lang = bd.get_lang(callback_query.from_user.id)
+    await bot.edit_message_text(text="Подождите пожалуйста" if lang == "Русский" else "Please wait",
+                                chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id)
     audio = dl.audio(vocab(callback_query.data).replace("a ", ""))
-    print(audio)
-    with open(audio, mode="rb") as file:
-        await bot.send_audio(chat_id=callback_query.message.chat.id, audio=file)
-    os.remove(audio)
-    await bot.edit_message_text(text="Спасибо за использование бота", chat_id=callback_query.from_user.id,
-                                message_id=callback_query.message.message_id)
+    if audio == "404":
+        await bot.edit_message_text(
+            text="⚠️Возникла ошибка! Попробуйте ещё раз" if lang == "Русский" else "⚠️ There's been an error! Try again",
+            chat_id=callback_query.from_user.id,
+            message_id=callback_query.message.message_id)
+    else:
+        with open(audio, mode="rb") as file:
+            await bot.send_audio(chat_id=callback_query.message.chat.id, audio=file)
+        os.remove(audio)
+        await bot.edit_message_text(text="Спасибо за использование бота" if lang == "Русский" else "Thanks for using",
+                                    chat_id=callback_query.from_user.id,
+                                    message_id=callback_query.message.message_id)
 
 
 @dp.callback_query_handler(lambda c: vocab(c.data).startswith("v"))
@@ -102,15 +110,23 @@ async def process_callback1(callback_query: types.CallbackQuery):
         reply_markup=None
     )
     print(vocab(callback_query.data))
-    await bot.edit_message_text(text="Подождите пожалуйста", chat_id=callback_query.from_user.id,
+    lang = bd.get_lang(callback_query.from_user.id)
+    await bot.edit_message_text(text="Подождите пожалуйста" if lang == "Русский" else "Please wait",
+                                chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id)
 
     video = dl.video(vocab(callback_query.data).replace("v ", ""))
-    print(video)
-    await tl.send(video, str(callback_query.from_user.id))
-    os.remove(video)
-    await bot.edit_message_text(text="Спасибо за использование бота", chat_id=callback_query.from_user.id,
-                                message_id=callback_query.message.message_id)
+    if video == "404":
+        await bot.edit_message_text(
+            text="⚠️Возникла ошибка! Попробуйте ещё раз" if lang == "Русский" else "⚠️ There's been an error! Try again",
+            chat_id=callback_query.from_user.id,
+            message_id=callback_query.message.message_id)
+    else:
+        await tl.send(video, str(callback_query.from_user.id))
+        os.remove(video)
+        await bot.edit_message_text(text="Спасибо за использование бота" if lang == "Русский" else "Thanks for using",
+                                    chat_id=callback_query.from_user.id,
+                                    message_id=callback_query.message.message_id)
 
 
 @dp.message_handler()
@@ -120,11 +136,14 @@ async def text_handler(message: types.Message):
     if not await check(message):
         await unsub(message)
         return 1
+    lang = bd.get_lang(message.from_user.id)
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton("audio", callback_data=vocab(f"a {message.text}")))
-    markup.add(InlineKeyboardButton("video", callback_data=vocab(f"v {message.text}")))
+    markup.add(
+        InlineKeyboardButton("аудио" if lang == "Русский" else "audio", callback_data=vocab(f"a {message.text}")))
+    markup.add(
+        InlineKeyboardButton("видео" if lang == "Русский" else "video", callback_data=vocab(f"v {message.text}")))
     await message.answer(
-        "Выберите формат файла", reply_markup=markup)
+        "Выберите формат файла" if lang == "Русский" else "Choice file format", reply_markup=markup)
 
 
 if __name__ == '__main__':
