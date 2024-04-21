@@ -31,6 +31,7 @@ async def unsub(message: types.Message):
     channels = ["https://t.me/endelneuro"]
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     keyboard.add(*[types.InlineKeyboardButton("Наш канал", url=url) for url in channels])
+    keyboard.add(InlineKeyboardButton("Я подписался", callback_data="sub"))
     await message.answer("Подпишитесь на наши каналы чтобы пользоваться ботом", reply_markup=keyboard)
 
 
@@ -73,6 +74,22 @@ async def process_callback2(callback_query: types.CallbackQuery):
     await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id,
                                 text="Привет 👋🏻  Я помогу скачать тебе почти все что угодно: музыку, видео и фильмы в лучшем качестве! Вставь ссылку из Soundcloud, YouTube и тд" if lang == "Русский" else "Hey 👋🏻 I will help you here to download any types of media: music. videos or movies in the best quality. Just send me the link to SoundCloud,  YouTube etc")
+
+
+@dp.callback_query_handler(lambda c: c.data == "sub")
+async def process_callback3(callback_query: types.CallbackQuery):
+    await bot.edit_message_reply_markup(
+        chat_id=callback_query.from_user.id,
+        message_id=callback_query.message.message_id,
+        reply_markup=None
+    )
+    lang = bd.get_lang(callback_query.from_user.id)
+    print(await check(callback_query.message))
+    if await check(callback_query.message):
+        await bot.edit_message_text(text="Спасибо за подписку" if lang == "Русский" else "Thanks for subscribe",
+                                    chat_id=callback_query.from_user.id,
+                                    message_id=callback_query.message.message_id)
+
 
 
 @dp.callback_query_handler(lambda c: vocab(c.data).startswith("a"))
