@@ -4,13 +4,14 @@ import argparse
 
 def video(url: str) -> str:
     try:
-        try:
+        if "you" in url:
             s = subprocess.check_output(
-                ["yt-dlp", "-f", "bestaudio+bestvideo", "--merge-output-format", "mp4", "--no-part", "--print", "filename",
+                ["yt-dlp", "-f", "bestaudio+bestvideo", "--merge-output-format", "mp4", "--no-part", "--print",
+                 "filename",
                  "--no-simulate", "--no-warnings",
                  url]).decode("utf-8")
             return ".".join(s.split("\n")[0].split(".")[:-1]) + ".mp4"
-        except:
+        else:
             s = subprocess.check_output(
                 ["yt-dlp", "-f", "best", "--merge-output-format", "mp4", "--no-part", "--print", "filename",
                  "--no-simulate", "--no-warnings",

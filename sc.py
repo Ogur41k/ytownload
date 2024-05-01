@@ -1,8 +1,11 @@
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import os
+
+import settings
 import tl, dl
 import DB
+import validators
 
 vocab_s_i = {"Дом": 1}
 vocab_i_s = {1: "Дом"}
@@ -20,7 +23,7 @@ def vocab(a):
         return t
 
 
-API_TOKEN = "6129793474:AAEnQD7jNt5O2okuRRwz2yyjHO1-Km_eDOQ"
+API_TOKEN = settings.API_TOKEN
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -28,20 +31,26 @@ bd = DB.DataBase()
 
 
 async def unsub(message: types.Message):
-    channels = ["https://t.me/endelneuro"]
+    lang = bd.get_lang(message.from_user.id)
+    channels = settings.channels
     keyboard = types.InlineKeyboardMarkup(row_width=1)
-    keyboard.add(*[types.InlineKeyboardButton("Наш канал", url=url) for url in channels])
-    keyboard.add(InlineKeyboardButton("Я подписался", callback_data="sub"))
-    await message.answer("Подпишитесь на наши каналы чтобы пользоваться ботом", reply_markup=keyboard)
+    if lang == "Русский":
+        keyboard.add(*[types.InlineKeyboardButton("Наш канал", url=url) for url in channels])
+        keyboard.add(InlineKeyboardButton("Я подписался", callback_data="sub"))
+        await message.answer("Подпишитесь на наши каналы чтобы пользоваться ботом", reply_markup=keyboard)
+    else:
+        keyboard.add(*[types.InlineKeyboardButton("Our channel", url=url) for url in channels])
+        keyboard.add(InlineKeyboardButton("Im subscribed", callback_data="sub"))
+        await message.answer("Subscribe to our channels to use the bot", reply_markup=keyboard)
 
 
-async def check(message):
-    channel_ids = [-1001950205471]
+async def check(from_id):
+    channel_ids = settings.channel_ids
     sub = []
     for my_channel_id in channel_ids:
-        user = await bot.get_chat_member(chat_id=my_channel_id, user_id=message.from_user.id)
+        user = await bot.get_chat_member(chat_id=my_channel_id, user_id=from_id)
         tmp = []
-        for i in [types.ChatMemberMember, types.ChatMemberAdministrator, types.ChatMemberOwner]:
+        for i in [types.ChatMemberMember, types.ChatMemberOwner, types.ChatMemberAdministrator]:
             tmp.append(isinstance(user, i))
         sub.append(any(tmp))
     return all(sub)
@@ -49,15 +58,15 @@ async def check(message):
 
 @dp.message_handler(content_types=['document', "audio", "video"])
 async def text_handler1(message: types.Message):
-    if message.from_user.username in ["Ogur41kkk"]:
-        await bot.copy_message(int(message.caption), message.chat.id, message.message_id, caption="")
+    if message.from_user.username in settings.senders:
+        await bot.copy_message(int(message.caption), message.chat.id, message.message_id, caption="@downloadsome_bot")
 
 
 @dp.message_handler(commands=["start", "help"])
 async def start(message: types.Message):
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton("Русский", callback_data=f"lang {message.from_user.id} Русский"))
-    markup.add(InlineKeyboardButton("English", callback_data=f"lang {message.from_user.id} English"))
+    markup.add(InlineKeyboardButton("Русский 🇷🇺", callback_data=f"lang {message.from_user.id} Русский"))
+    markup.add(InlineKeyboardButton("English 🇺🇸", callback_data=f"lang {message.from_user.id} English"))
     await message.answer(
         "Choice language", reply_markup=markup)
 
@@ -73,23 +82,32 @@ async def process_callback2(callback_query: types.CallbackQuery):
     bd.add_lang(user, lang)
     await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id,
-                                text="Привет 👋🏻  Я помогу скачать тебе почти все что угодно: музыку, видео и фильмы в лучшем качестве! Вставь ссылку из Soundcloud, YouTube и тд" if lang == "Русский" else "Hey 👋🏻 I will help you here to download any types of media: music. videos or movies in the best quality. Just send me the link to SoundCloud,  YouTube etc")
+                                text='''Привет 🍋 
+Я помогу скачать тебе почти все что угодно: музыку, видео и фильмы в лучшем качестве! 
+
+Вставь ссылку из Soundcloud, YouTube и тд 👇🏻''' if lang == "Русский" else """Hey 🍋 
+I will help you here to download any types of media: music. videos or movies in the best quality. 
+
+Just send me the link to SoundCloud,  YouTube etc 👇🏻""")
 
 
 @dp.callback_query_handler(lambda c: c.data == "sub")
 async def process_callback3(callback_query: types.CallbackQuery):
+    lang = bd.get_lang(callback_query.from_user.id)
     await bot.edit_message_reply_markup(
         chat_id=callback_query.from_user.id,
         message_id=callback_query.message.message_id,
         reply_markup=None
     )
-    lang = bd.get_lang(callback_query.from_user.id)
-    print(await check(callback_query.message))
-    if await check(callback_query.message):
-        await bot.edit_message_text(text="Спасибо за подписку" if lang == "Русский" else "Thanks for subscribe",
+    if not await check(callback_query.from_user.id):
+        await bot.edit_message_text(text="Вы не подписались" if lang == "Русский" else "You didn't subscribe",
                                     chat_id=callback_query.from_user.id,
                                     message_id=callback_query.message.message_id)
-
+        await unsub(callback_query.message)
+        return 1
+    await bot.edit_message_text(text="Спасибо за подписку" if lang == "Русский" else "Thanks 🙏 Now send a link here 👇🏻",
+                                chat_id=callback_query.from_user.id,
+                                message_id=callback_query.message.message_id)
 
 
 @dp.callback_query_handler(lambda c: vocab(c.data).startswith("a"))
@@ -99,7 +117,6 @@ async def process_callback(callback_query: types.CallbackQuery):
         message_id=callback_query.message.message_id,
         reply_markup=None
     )
-    print(vocab(callback_query.data))
     lang = bd.get_lang(callback_query.from_user.id)
     await bot.edit_message_text(text="Подождите пожалуйста" if lang == "Русский" else "Please wait",
                                 chat_id=callback_query.from_user.id,
@@ -107,12 +124,12 @@ async def process_callback(callback_query: types.CallbackQuery):
     audio = dl.audio(vocab(callback_query.data).replace("a ", ""))
     if audio == "404":
         await bot.edit_message_text(
-            text="⚠️Возникла ошибка! Попробуйте ещё раз" if lang == "Русский" else "⚠️ There's been an error! Try again",
+            text="⚠️Возникла ошибка! Попробуйте ещё раз" if lang == "Русский" else "⚠️Oops! You sent incorrect link or choose incorrect format of file! Try again :)",
             chat_id=callback_query.from_user.id,
             message_id=callback_query.message.message_id)
     else:
         with open(audio, mode="rb") as file:
-            await bot.send_audio(chat_id=callback_query.message.chat.id, audio=file)
+            await bot.send_audio(chat_id=callback_query.message.chat.id, audio=file,caption="@downloadsome_bot")
         os.remove(audio)
         await bot.edit_message_text(text="Спасибо за использование бота" if lang == "Русский" else "Thanks for using",
                                     chat_id=callback_query.from_user.id,
@@ -126,7 +143,6 @@ async def process_callback1(callback_query: types.CallbackQuery):
         message_id=callback_query.message.message_id,
         reply_markup=None
     )
-    print(vocab(callback_query.data))
     lang = bd.get_lang(callback_query.from_user.id)
     await bot.edit_message_text(text="Подождите пожалуйста" if lang == "Русский" else "Please wait",
                                 chat_id=callback_query.from_user.id,
@@ -135,7 +151,7 @@ async def process_callback1(callback_query: types.CallbackQuery):
     video = dl.video(vocab(callback_query.data).replace("v ", ""))
     if video == "404":
         await bot.edit_message_text(
-            text="⚠️Возникла ошибка! Попробуйте ещё раз" if lang == "Русский" else "⚠️ There's been an error! Try again",
+            text="⚠️Возникла ошибка! Попробуйте ещё раз" if lang == "Русский" else "⚠️Oops! You sent incorrect link or choose incorrect format of file! Try again :)",
             chat_id=callback_query.from_user.id,
             message_id=callback_query.message.message_id)
     else:
@@ -150,17 +166,20 @@ async def process_callback1(callback_query: types.CallbackQuery):
 async def text_handler(message: types.Message):
     me = await bot.get_me()
     bd.add(message.text, message.from_user.username, str(message.chat.id), me.username)
-    if not await check(message):
+    if not await check(message.from_user.id):
         await unsub(message)
         return 1
     lang = bd.get_lang(message.from_user.id)
-    markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        InlineKeyboardButton("аудио" if lang == "Русский" else "audio", callback_data=vocab(f"a {message.text}")))
-    markup.add(
-        InlineKeyboardButton("видео" if lang == "Русский" else "video", callback_data=vocab(f"v {message.text}")))
-    await message.answer(
-        "Выберите формат файла" if lang == "Русский" else "Choice file format", reply_markup=markup)
+    if validators.url(message.text):
+        markup = InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            InlineKeyboardButton("аудио" if lang == "Русский" else "audio", callback_data=vocab(f"a {message.text}")))
+        markup.add(
+            InlineKeyboardButton("видео" if lang == "Русский" else "video", callback_data=vocab(f"v {message.text}")))
+        await message.answer(
+            "Выберите формат файла" if lang == "Русский" else "Choice file format", reply_markup=markup)
+    else:
+        await message.answer("Неправильная ссылка" if lang == "Русский" else "Invalid url")
 
 
 if __name__ == '__main__':

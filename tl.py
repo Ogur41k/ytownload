@@ -1,5 +1,6 @@
 from telethon import TelegramClient
 from telethon.sessions import StringSession
+import settings
 
 api_id = 20223832
 api_hash = '88d449664b91a918ddd9647b072f95e9'
@@ -10,4 +11,4 @@ client.start()
 
 
 async def send(filename: str, chat_id: str):
-    await client.send_file("ytownloadbot", filename, caption=chat_id)
+    await client.send_file(settings.bot_name, filename, caption=chat_id)
