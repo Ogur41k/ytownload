@@ -75,6 +75,16 @@ class DataBase:
     def get_users_count(self):
         return self.conn.cursor().execute("SELECT COUNT(DISTINCT from_user) FROM messages;").fetchall()[0][0]
 
+    def get_chats_eng(self):
+        return list(
+            map(lambda e: e[0], self.conn.cursor().execute(
+                "SELECT DISTINCT messages.chat_id FROM messages INNER JOIN lang ON messages.chat_id = lang.user_id WHERE lang.language = 'English'").fetchall()))
+
+    def get_chats_rus(self):
+        return list(
+            map(lambda e: e[0], self.conn.cursor().execute(
+                "SELECT DISTINCT messages.chat_id FROM messages INNER JOIN lang ON messages.chat_id = lang.user_id WHERE lang.language = 'Русский'").fetchall()))
+
 
 if __name__ == '__main__':
     db = DataBase()

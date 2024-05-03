@@ -4,6 +4,7 @@ channels = ["https://t.me/endelneuro"]
 channel_ids = [-1001950205471]
 senders = ["Ogur41kkk"]
 
+admins = ["Ogur41kkk","https://t.me/e8wokeups"]
 # bot_name = "downloadsome_bot"
 # API_TOKEN = "7047376938:AAE5vLB0CBSXetHEwPxfw9ZNUu5EQx1tXMc"
 # channels = ["https://t.me/downloadsome"]

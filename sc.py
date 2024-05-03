@@ -1,11 +1,21 @@
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import os
-
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
 import settings
 import tl, dl
 import DB
 import validators
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+
+storage = MemoryStorage()
+
+
+class MyStates(StatesGroup):
+    admin_send_rus = State()
+    admin_send_eng = State()
+
 
 vocab_s_i = {"Дом": 1}
 vocab_i_s = {1: "Дом"}
@@ -26,7 +36,7 @@ def vocab(a):
 API_TOKEN = settings.API_TOKEN
 
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher(bot, storage=storage)
 bd = DB.DataBase()
 
 
@@ -105,9 +115,10 @@ async def process_callback3(callback_query: types.CallbackQuery):
                                     message_id=callback_query.message.message_id)
         await unsub(callback_query.message)
         return 1
-    await bot.edit_message_text(text="Спасибо за подписку" if lang == "Русский" else "Thanks 🙏 Now send a link here 👇🏻",
-                                chat_id=callback_query.from_user.id,
-                                message_id=callback_query.message.message_id)
+    await bot.edit_message_text(
+        text="Спасибо за подписку" if lang == "Русский" else "Thanks 🙏 Now send a link here 👇🏻",
+        chat_id=callback_query.from_user.id,
+        message_id=callback_query.message.message_id)
 
 
 @dp.callback_query_handler(lambda c: vocab(c.data).startswith("a"))
@@ -129,7 +140,7 @@ async def process_callback(callback_query: types.CallbackQuery):
             message_id=callback_query.message.message_id)
     else:
         with open(audio, mode="rb") as file:
-            await bot.send_audio(chat_id=callback_query.message.chat.id, audio=file,caption="@downloadsome_bot")
+            await bot.send_audio(chat_id=callback_query.message.chat.id, audio=file, caption="@downloadsome_bot")
         os.remove(audio)
         await bot.edit_message_text(text="Спасибо за использование бота" if lang == "Русский" else "Thanks for using",
                                     chat_id=callback_query.from_user.id,
@@ -161,6 +172,44 @@ async def process_callback1(callback_query: types.CallbackQuery):
                                     chat_id=callback_query.from_user.id,
                                     message_id=callback_query.message.message_id)
 
+
+@dp.message_handler(commands=["send_rus"])
+async def send_rus(message: types.Message):
+    if message.from_user.username not in settings.admins:
+        return 1
+    await MyStates.admin_send_rus.set()
+    await message.answer("Отправьте сообщение (0 для выхода)")
+
+
+@dp.message_handler(state=MyStates.admin_send_rus)
+async def text_handler_rus(message: types.Message, state: FSMContext):
+    await state.finish()
+    if message.text == "0":
+        return 1
+    chats = bd.get_chats_rus()
+    await message.answer(f"Всего чатов: {len(chats)}")
+    for chat_id in chats:
+        await bot.copy_message(chat_id=chat_id, from_chat_id=message.chat.id, message_id=message.message_id)
+    await message.answer("Сообщения отправлены")
+
+@dp.message_handler(commands=["send_eng"])
+async def send_rus(message: types.Message):
+    if message.from_user.username not in settings.admins:
+        return 1
+    await MyStates.admin_send_eng.set()
+    await message.answer("Отправьте сообщение (0 для выхода)")
+
+
+@dp.message_handler(state=MyStates.admin_send_eng)
+async def text_handler_rus(message: types.Message, state: FSMContext):
+    await state.finish()
+    if message.text == "0":
+        return 1
+    chats = bd.get_chats_eng()
+    await message.answer(f"Всего чатов: {len(chats)}")
+    for chat_id in chats:
+        await bot.copy_message(chat_id=chat_id, from_chat_id=message.chat.id, message_id=message.message_id)
+    await message.answer("Сообщения отправлены")
 
 @dp.message_handler()
 async def text_handler(message: types.Message):
