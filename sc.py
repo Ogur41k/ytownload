@@ -132,7 +132,7 @@ async def process_callback(callback_query: types.CallbackQuery):
     await bot.edit_message_text(text="Подождите пожалуйста" if lang == "Русский" else "Please wait",
                                 chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id)
-    audio = dl.audio(vocab(callback_query.data).replace("a ", ""))
+    audio = await dl.audio(vocab(callback_query.data).replace("a ", ""))
     if audio == "404":
         await bot.edit_message_text(
             text="⚠️Возникла ошибка! Попробуйте ещё раз" if lang == "Русский" else "⚠️Oops! You sent incorrect link or choose incorrect format of file! Try again :)",
@@ -159,7 +159,7 @@ async def process_callback1(callback_query: types.CallbackQuery):
                                 chat_id=callback_query.from_user.id,
                                 message_id=callback_query.message.message_id)
 
-    video = dl.video(vocab(callback_query.data).replace("v ", ""))
+    video = await dl.video(vocab(callback_query.data).replace("v ", ""))
     if video == "404":
         await bot.edit_message_text(
             text="⚠️Возникла ошибка! Попробуйте ещё раз" if lang == "Русский" else "⚠️Oops! You sent incorrect link or choose incorrect format of file! Try again :)",
@@ -192,6 +192,7 @@ async def text_handler_rus(message: types.Message, state: FSMContext):
         await bot.copy_message(chat_id=chat_id, from_chat_id=message.chat.id, message_id=message.message_id)
     await message.answer("Сообщения отправлены")
 
+
 @dp.message_handler(commands=["send_eng"])
 async def send_rus(message: types.Message):
     if message.from_user.username not in settings.admins:
@@ -210,6 +211,7 @@ async def text_handler_rus(message: types.Message, state: FSMContext):
     for chat_id in chats:
         await bot.copy_message(chat_id=chat_id, from_chat_id=message.chat.id, message_id=message.message_id)
     await message.answer("Сообщения отправлены")
+
 
 @dp.message_handler()
 async def text_handler(message: types.Message):
